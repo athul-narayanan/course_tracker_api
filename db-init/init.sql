@@ -263,4 +263,71 @@ JOIN fields f ON f.name IN (
     'Mining & Geological Studies'
 );
 
+CREATE TYPE course_level AS ENUM ('Bachelors', 'Masters', 'PG Diploma');
 
+CREATE TYPE course_duration AS ENUM (
+    '10 Months',
+    '16 Months',
+    '20 Months',
+    '24 Months',
+    '4 Years',
+    '4.5 Years',
+    '5 Years',
+    '1 Year',
+    '2 Years',
+    '2-3 Years'
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    university_id INT NOT NULL REFERENCES universities(id) ON DELETE CASCADE,
+    field_id INT NOT NULL REFERENCES fields(id) ON DELETE CASCADE,
+    specialization_id INT NOT NULL REFERENCES specializations(id) ON DELETE CASCADE,
+    level course_level NOT NULL,
+    duration course_duration NOT NULL,
+    course_link TEXT NOT NULL
+);
+
+INSERT INTO courses (name, university_id, field_id, specialization_id, level, duration, course_link) VALUES
+('BSc Software Engineering',1,1,1,'Bachelors','4 Years','https://www.utoronto.ca/academics/programs/undergraduate/software-engineering'),
+('MSc Applied Data Science',1,1,2,'Masters','16 Months','https://www.utoronto.ca/academics/graduate/data-science'),
+('MBA Finance (Rotman)',1,2,4,'Masters','2 Years','https://www.rotman.utoronto.ca/Degrees/MastersPrograms/MBA'),
+('BSc Biology (Honours)',1,3,5,'Bachelors','4 Years','https://biology.utoronto.ca/'),
+('MA Clinical Psychology (Research)',1,4,6,'Masters','2-3 Years','https://psych.utoronto.ca/graduate/clinical-psychology'),
+
+('BASc Software Engineering',2,1,1,'Bachelors','4 Years','https://engineering.ubc.ca/programs/engineering/engineering'),
+('Master of Data Science (MDS)',2,1,2,'Masters','10 Months','https://masters.datascience.ubc.ca/'),
+('MBA in Finance',2,2,4,'Masters','16 Months','https://www.ubc.ca/sauder/programs/graduate/mba'),
+('BSc Biology (Ecology & Evolution)',2,3,5,'Bachelors','4 Years','https://biology.ubc.ca/'),
+('MA Clinical Psychology (Health Stream)',2,4,6,'Masters','2 Years','https://psych.ubc.ca/graduate/clinical/'),
+
+('BEng Software Engineering',3,1,1,'Bachelors','4 Years','https://www.mcgill.ca/study/2023-2024/faculties/science/undergraduate/programs'),
+('MSc Data Analytics & Machine Learning',3,1,2,'Masters','2 Years','https://www.mcgill.ca/science/graduate/data-science-ml'),
+('MBA in Strategic Management',3,2,3,'Masters','20 Months','https://www.mcgill.ca/desautels/programs/mba'),
+('BSc Biology (Physiology)',3,3,5,'Bachelors','4 Years','https://www.mcgill.ca/biology/'),
+('MSc Clinical Psychology (Neuropsychology)',3,4,6,'Masters','2-3 Years','https://www.mcgill.ca/psychology/graduate/programs'),
+
+('BSc Computing Science (Software Practice)',4,1,1,'Bachelors','4 Years','https://www.ualberta.ca/computing-science/undergraduate/index.html'),
+('MSc Computing Science - Data Science Specialization',4,1,2,'Masters','2 Years','https://www.ualberta.ca/computing-science/graduate/index.html'),
+('MBA Finance',4,2,4,'Masters','20 Months','https://www.ualberta.ca/business/programs/mba/index.html'),
+('BSc Biological Sciences',4,3,5,'Bachelors','4 Years','https://www.ualberta.ca/biological-sciences/index.html'),
+('MSc Clinical Psychology (Health)',4,4,6,'Masters','2 Years','https://www.ualberta.ca/psychology/graduate/index.html'),
+
+('BSE Software Engineering (Co-op)',5,1,1,'Bachelors','5 Years','https://uwaterloo.ca/future-students/programs/software-engineering'),
+('BSc Data Science (Co-op)',5,1,2,'Bachelors','4.5 Years','https://uwaterloo.ca/future-students/programs/data-science'),
+('MBA Technology Leadership',5,2,3,'Masters','24 Months','https://uwaterloo.ca/conrad-school-entrepreneurship-business/programs/mba'),
+('MSc Biology (Genetics)',5,3,5,'Masters','2 Years','https://uwaterloo.ca/biology/'),
+('MA Clinical Psychology (Behavioral Science)',5,4,6,'Masters','2-3 Years','https://uwaterloo.ca/psychology/graduate');
+
+
+CREATE TABLE subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    university_id INT,
+    field_id INT,
+    specialization_id INT,
+    level VARCHAR(50),
+    duration VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

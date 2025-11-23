@@ -3,6 +3,8 @@ package main
 import (
 	"course-tracker/config"
 	"course-tracker/internal/auth"
+	"course-tracker/internal/subscription"
+	"course-tracker/internal/university"
 	"log"
 	"os"
 
@@ -39,6 +41,13 @@ func main() {
 	userService := &auth.AuthService{DB: db, CFG: &cfg}
 
 	auth.RegisterRoutes(r, userService)
+
+	universityService := &university.UniversityService{DB: db, CFG: &cfg}
+
+	university.RegisterRoutes(r, universityService)
+
+	subService := subscription.SubscriptionService{DB: db, CFG: &cfg}
+	subscription.RegisterRoutes(r, &subService)
 
 	// starting the server
 	port := os.Getenv("PORT")

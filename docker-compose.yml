@@ -5,11 +5,11 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DB_HOST: database
+      DB_HOST: 34.122.78.142
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: Algoma@2024
-      DB_NAME: postgres
+      DB_NAME:  course_tracker
       JWT_SECRET: 12DH9111hbhos5AW
     ports:
       - "8080:8080"
