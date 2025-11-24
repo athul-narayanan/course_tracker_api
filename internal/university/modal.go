@@ -26,3 +26,32 @@ type CourseDetail struct {
 	Duration       string `json:"duration"`
 	CourseLink     string `json:"courseLink"`
 }
+
+type Course struct {
+	ID               uint `gorm:"primaryKey"`
+	Name             string
+	UniversityID     *int
+	FieldID          *int
+	SpecializationID *int
+	Level            *string
+	Duration         *string
+	CourseLink       string
+}
+
+type Subscription struct {
+	ID               uint   `gorm:"primaryKey"`
+	Email            string `gorm:"index"`
+	UniversityID     *int
+	FieldID          *int
+	SpecializationID *int
+	Level            *string
+	Duration         *string
+}
+
+func (Course) TableName() string {
+	return "courses"
+}
+
+func (Subscription) TableName() string {
+	return "subscriptions"
+}

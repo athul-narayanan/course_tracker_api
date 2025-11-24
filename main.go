@@ -3,6 +3,7 @@ package main
 import (
 	"course-tracker/config"
 	"course-tracker/internal/auth"
+	"course-tracker/internal/kafka"
 	"course-tracker/internal/subscription"
 	"course-tracker/internal/university"
 	"log"
@@ -42,7 +43,9 @@ func main() {
 
 	auth.RegisterRoutes(r, userService)
 
-	universityService := &university.UniversityService{DB: db, CFG: &cfg}
+	producer := kafka.NewProducer()
+
+	universityService := &university.UniversityService{DB: db, CFG: &cfg, Producer: producer}
 
 	university.RegisterRoutes(r, universityService)
 

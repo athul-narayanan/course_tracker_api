@@ -77,3 +77,18 @@ func (uc *UniversityController) SearchUniversities(c *gin.Context) {
 		"data":  list,
 	})
 }
+
+func (uc *UniversityController) AddCourse(c *gin.Context) {
+	var req Course
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	if err := uc.UniversityService.AddCourse(req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to publish event"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Course update published"})
+}

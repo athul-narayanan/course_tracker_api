@@ -13,5 +13,6 @@ func RegisterRoutes(r *gin.Engine, us *UniversityService) {
 		uni.GET("/fields", controller.GetFields)
 		uni.GET("/specializations", controller.GetSpecializations)
 		uni.GET("/universities/search", controller.SearchUniversities)
+		uni.POST("/universities/add", controller.AddCourse)
 	}
 }
