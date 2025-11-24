@@ -40,7 +40,7 @@ type Course struct {
 
 type Subscription struct {
 	ID               uint   `gorm:"primaryKey"`
-	Email            string `gorm:"index"`
+	Email            string `gorm:"column:user_email;index"`
 	UniversityID     *int
 	FieldID          *int
 	SpecializationID *int

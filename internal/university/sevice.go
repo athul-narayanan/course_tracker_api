@@ -24,6 +24,14 @@ func (s *UniversityService) GetUniversities() ([]University, error) {
 	return universities, nil
 }
 
+func (s *UniversityService) GetUniversityNameByID(id int) (string, error) {
+	var name string
+	if err := s.DB.Table("universities").Select("name").Where("id = ?", id).Scan(&name).Error; err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
 func (s *UniversityService) GetFields() ([]Field, error) {
 	var fields []Field
 	if err := s.DB.Find(&fields).Error; err != nil {
@@ -150,7 +158,7 @@ func (s *UniversityService) GetSubscribersForCourse(evt kafka.CourseEvent) ([]st
 	}
 
 	var emails []string
-	if err := q.Distinct("email").Pluck("email", &emails).Error; err != nil {
+	if err := q.Distinct("user_email").Pluck("user_email", &emails).Error; err != nil {
 		return nil, err
 	}
 

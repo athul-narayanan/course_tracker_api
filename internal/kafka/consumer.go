@@ -12,11 +12,12 @@ import (
 )
 
 type EmailService interface {
-	SendCourseNotification(email string, evt CourseEvent) error
+	SendCourseNotification(email string, evt CourseEvent, uniName string) error
 }
 
 type SubscriptionRepository interface {
 	GetSubscribersForCourse(evt CourseEvent) ([]string, error)
+	GetUniversityNameByID(id int) (string, error)
 }
 
 type Consumer struct {
@@ -92,8 +93,17 @@ func (c *Consumer) Start(ctx context.Context) error {
 			continue
 		}
 
+		universityName := ""
+		if evt.UniversityID != nil {
+			if name, err := c.repo.GetUniversityNameByID(*evt.UniversityID); err != nil {
+				log.Printf("Failed to load university name for id=%d: %v", *evt.UniversityID, err)
+			} else {
+				universityName = name
+			}
+		}
+
 		for _, email := range subscribers {
-			if err := c.email.SendCourseNotification(email, evt); err != nil {
+			if err := c.email.SendCourseNotification(email, evt, universityName); err != nil {
 				log.Printf("Failed to send email to %s: %v", email, err)
 			}
 		}

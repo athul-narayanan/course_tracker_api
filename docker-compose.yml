@@ -12,6 +12,11 @@ services:
       JWT_SECRET: 12DH9111hbhos5AW
       KAFKA_BROKERS: kafka:9092
       KAFKA_COURSE_TOPIC: course_updates
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: athulnarayanan62@gmail.com
+      SMTP_PASS: "clxy iifi oulj bree"
+      SMTP_FROM: athulnarayanan62@gmail.com
     ports:
       - "8080:8080"
     depends_on:

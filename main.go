@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"course-tracker/config"
 	"course-tracker/internal/auth"
 	"course-tracker/internal/kafka"
@@ -8,6 +9,8 @@ import (
 	"course-tracker/internal/university"
 	"log"
 	"os"
+
+	"course-tracker/internal/util"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -51,6 +54,16 @@ func main() {
 
 	subService := subscription.SubscriptionService{DB: db, CFG: &cfg}
 	subscription.RegisterRoutes(r, &subService)
+
+	ctx := context.Background()
+	emailService := util.NewEmailService()
+	consumer := kafka.NewConsumer(universityService, emailService)
+
+	go func() {
+		if err := consumer.Start(ctx); err != nil {
+			log.Printf("Kafka consumer stopped: %v", err)
+		}
+	}()
 
 	// starting the server
 	port := os.Getenv("PORT")
