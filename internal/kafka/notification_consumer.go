@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -11,22 +12,24 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 )
 
-type EmailService interface {
-	SendCourseNotification(email string, evt CourseEvent, uniName string) error
+type Notification struct {
+	UserID    int
+	Message   string
+	Status    string
+	CreatedAt time.Time
 }
 
-type SubscriptionRepository interface {
-	GetSubscribersForCourse(evt CourseEvent) ([]string, error)
-	GetUniversityNameByID(id int) (string, error)
+type NotificationService interface {
+	CreateNotification(email string, message string) error
 }
 
-type Consumer struct {
-	reader *kafkago.Reader
-	repo   SubscriptionRepository
-	email  EmailService
+type NotificationConsumer struct {
+	reader   *kafkago.Reader
+	repo     SubscriptionRepository
+	notifier NotificationService
 }
 
-func NewConsumer(repo SubscriptionRepository, email EmailService) *Consumer {
+func NewNotificationConsumer(repo SubscriptionRepository, notifier NotificationService) *NotificationConsumer {
 	raw := strings.TrimSpace(os.Getenv("KAFKA_BROKERS"))
 	mode := os.Getenv("KAFKA_CONSUMER_STRATEGY")
 
@@ -48,12 +51,12 @@ func NewConsumer(repo SubscriptionRepository, email EmailService) *Consumer {
 		topic = "course_updates"
 	}
 
-	groupID := os.Getenv("KAFKA_CONSUMER_GROUP")
+	groupID := os.Getenv("KAFKA_NOTIFICATION_GROUP")
 	if groupID == "" {
-		groupID = "course_notifier_group"
+		groupID = "course_notification_group"
 	}
 
-	log.Printf("Kafka consumer using brokers: %v, topic: %s, group: %s, strategy=%s",
+	log.Printf("Kafka notification consumer using brokers: %v, topic: %s, group: %s, strategy=%s",
 		brokers, topic, groupID, mode)
 
 	cfg := kafkago.ReaderConfig{
@@ -69,20 +72,20 @@ func NewConsumer(repo SubscriptionRepository, email EmailService) *Consumer {
 		cfg.MaxWait = 1 * time.Second
 	} else {
 		cfg.MinBytes = 1
-		cfg.MaxWait = 100 * time.Millisecond
 		cfg.MaxBytes = 100
+		cfg.MaxWait = 100 * time.Millisecond
 	}
 
 	r := kafkago.NewReader(cfg)
 
-	return &Consumer{
-		reader: r,
-		repo:   repo,
-		email:  email,
+	return &NotificationConsumer{
+		reader:   r,
+		repo:     repo,
+		notifier: notifier,
 	}
 }
 
-func (c *Consumer) Start(ctx context.Context) error {
+func (c *NotificationConsumer) Start(ctx context.Context) error {
 	for {
 		m, err := c.reader.ReadMessage(ctx)
 		if err != nil {
@@ -99,16 +102,6 @@ func (c *Consumer) Start(ctx context.Context) error {
 			continue
 		}
 
-		latency := time.Now().UnixMilli() - evt.CreatedAt
-		log.Printf("LATENCY strategy=%s ms=%d course=%s",
-			os.Getenv("KAFKA_CONSUMER_STRATEGY"), latency, evt.Name)
-
-		subscribers, err := c.repo.GetSubscribersForCourse(evt)
-		if err != nil {
-			log.Printf("Failed to load subscribers: %v", err)
-			continue
-		}
-
 		universityName := ""
 		if evt.UniversityID != nil {
 			if name, err := c.repo.GetUniversityNameByID(*evt.UniversityID); err != nil {
@@ -118,14 +111,30 @@ func (c *Consumer) Start(ctx context.Context) error {
 			}
 		}
 
-		for _, email := range subscribers {
-			if err := c.email.SendCourseNotification(email, evt, universityName); err != nil {
-				log.Printf("Failed to send email to %s: %v", email, err)
+		userIDs, err := c.repo.GetSubscribersForCourse(evt)
+		if err != nil {
+			log.Printf("Failed to get subscribers for course: %v", err)
+			continue
+		}
+
+		for _, userID := range userIDs {
+			body := fmt.Sprintf(
+				"Hi,\n\nA new course that matches your preferences has been added at %s:\n\nName: %s\nLevel: %s\nDuration: %s\n\nRegards,\nCourse Tracker\n\nVisit the link to see details: %s",
+				universityName,
+				evt.Name,
+				*evt.Level,
+				*evt.Duration,
+				evt.CourseLink,
+			)
+
+			if err := c.notifier.CreateNotification(userID, body); err != nil {
+				log.Printf("Failed to create notification for user %d: %v", userID, err)
 			}
 		}
 	}
+
 }
 
-func (c *Consumer) Close() error {
+func (c *NotificationConsumer) Close() error {
 	return c.reader.Close()
 }

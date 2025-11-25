@@ -16,17 +16,6 @@ type Specialization struct {
 	Name    string `json:"name"`
 }
 
-type CourseDetail struct {
-	ID             uint   `json:"id"`
-	Name           string `json:"name"`
-	University     string `json:"university"`
-	Field          string `json:"field"`
-	Specialization string `json:"specialization"`
-	Level          string `json:"level"`
-	Duration       string `json:"duration"`
-	CourseLink     string `json:"courseLink"`
-}
-
 type Course struct {
 	ID               uint `gorm:"primaryKey"`
 	Name             string
@@ -36,6 +25,17 @@ type Course struct {
 	Level            *string
 	Duration         *string
 	CourseLink       string
+}
+
+type CourseDTO struct {
+	ID             uint    `json:"id"`
+	Name           string  `json:"name"`
+	Level          *string `json:"level"`
+	Duration       *string `json:"duration"`
+	CourseLink     string  `json:"courseLink"`
+	University     string  `json:"university"`
+	Field          string  `json:"field"`
+	Specialization string  `json:"specialization"`
 }
 
 type Subscription struct {

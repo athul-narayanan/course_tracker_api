@@ -92,3 +92,28 @@ func (uc *UniversityController) AddCourse(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Course update published"})
 }
+
+func (uc *UniversityController) UploadCourses(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	tempPath := "./tmp/" + file.Filename
+	if err := c.SaveUploadedFile(file, tempPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
+		return
+	}
+
+	count, err := uc.UniversityService.UploadCourses(tempPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Upload successful",
+		"inserted": count,
+	})
+}

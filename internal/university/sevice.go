@@ -3,10 +3,17 @@ package university
 import (
 	"course-tracker/config"
 	"course-tracker/internal/kafka"
+	"encoding/csv"
+	"errors"
 	"fmt"
+	"log"
 	"math"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -56,8 +63,8 @@ func (s *UniversityService) GetSpecializations(fieldId string) ([]Specialization
 	return specs, nil
 }
 
-func (s *UniversityService) SearchUniversities(filters map[string]string, pageStr, limitStr string) ([]CourseDetail, int64, int, int, int, error) {
-	var list []CourseDetail
+func (s *UniversityService) SearchUniversities(filters map[string]string, pageStr, limitStr string) ([]CourseDTO, int64, int, int, int, error) {
+	var list []CourseDTO
 	var total int64
 
 	page, _ := strconv.Atoi(pageStr)
@@ -129,6 +136,8 @@ func (s *UniversityService) AddCourse(c Course) error {
 		Level:            c.Level,
 		Duration:         c.Duration,
 		Source:           "manual",
+		CreatedAt:        time.Now().UnixMilli(),
+		CourseLink:       c.CourseLink,
 	}
 
 	return s.Producer.PublishCourseEvent(evt)
@@ -165,31 +174,120 @@ func (s *UniversityService) GetSubscribersForCourse(evt kafka.CourseEvent) ([]st
 	return emails, nil
 }
 
-// func (s *UniversityService) UploadCourses(file multipart.File) error {
-// 	courses, err := utils.ParseCourseExcel(file)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if len(courses) == 0 {
-// 		return errors.New("no valid records found")
-// 	}
+func (s *UniversityService) processCSV(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
 
-// 	for _, c := range courses {
-// 		err := s.Repo.SaveCourse(c)
-// 		if err != nil {
-// 			continue
-// 		}
+	reader := csv.NewReader(file)
+	lines, err := reader.ReadAll()
+	if err != nil {
+		return 0, err
+	}
 
-// 		evt := kafka.CourseEvent{
-// 			Name:             c.Name,
-// 			UniversityID:     c.UniversityID,
-// 			FieldID:          c.FieldID,
-// 			SpecializationID: c.SpecializationID,
-// 			Level:            c.Level,
-// 			Duration:         c.Duration,
-// 			Source:           "excel_upload",
-// 		}
-// 		_ = s.Producer.PublishCourseEvent(evt)
-// 	}
-// 	return nil
-// }
+	if len(lines) < 2 {
+		return 0, errors.New("CSV contains no records")
+	}
+
+	inserted := 0
+
+	for i, row := range lines[1:] {
+		if len(row) < 7 {
+			return inserted, fmt.Errorf("row %d is incomplete", i+2)
+		}
+
+		universityID, _ := strconv.Atoi(row[1])
+		fieldID, _ := strconv.Atoi(row[2])
+		specializationID, _ := strconv.Atoi(row[3])
+
+		course := Course{
+			Name:             row[0],
+			UniversityID:     &universityID,
+			FieldID:          &fieldID,
+			SpecializationID: &specializationID,
+			Level:            &row[4],
+			Duration:         &row[5],
+			CourseLink:       row[6],
+		}
+
+		if err := s.DB.Create(&course).Error; err != nil {
+			return inserted, err
+		}
+
+		inserted++
+
+		evt := kafka.CourseEvent{
+			Name:             course.Name,
+			UniversityID:     course.UniversityID,
+			FieldID:          course.FieldID,
+			SpecializationID: course.SpecializationID,
+			Level:            course.Level,
+			Duration:         course.Duration,
+			Source:           "manual",
+			CreatedAt:        time.Now().UnixMilli(),
+			CourseLink:       course.CourseLink,
+		}
+
+		s.Producer.PublishCourseEvent(evt)
+	}
+
+	return inserted, nil
+}
+
+func (s *UniversityService) UploadCourses(path string) (int, error) {
+	if strings.HasSuffix(path, ".csv") {
+		return s.processCSV(path)
+	}
+	return s.processExcel(path)
+}
+
+func (s *UniversityService) processExcel(path string) (int, error) {
+	f, err := excelize.OpenFile(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows("Sheet1")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(rows) < 2 {
+		return 0, errors.New("Excel file contains no rows")
+	}
+
+	inserted := 0
+
+	for i, row := range rows[1:] {
+		log.Printf("Processing row %d: %d\n", i+2, len(row))
+		log.Printf("Row data: %v\n", row)
+		if len(row) < 7 {
+			return inserted, fmt.Errorf("row %d is incomplete", i+2)
+		}
+
+		universityID, _ := strconv.Atoi(row[1])
+		fieldID, _ := strconv.Atoi(row[2])
+		specializationID, _ := strconv.Atoi(row[3])
+
+		course := Course{
+			Name:             row[0],
+			UniversityID:     &universityID,
+			FieldID:          &fieldID,
+			SpecializationID: &specializationID,
+			Level:            &row[4],
+			Duration:         &row[5],
+			CourseLink:       row[6],
+		}
+
+		if err := s.DB.Create(&course).Error; err != nil {
+			return inserted, err
+		}
+
+		inserted++
+	}
+
+	return inserted, nil
+}

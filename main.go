@@ -5,6 +5,7 @@ import (
 	"course-tracker/config"
 	"course-tracker/internal/auth"
 	"course-tracker/internal/kafka"
+	"course-tracker/internal/notification"
 	"course-tracker/internal/subscription"
 	"course-tracker/internal/university"
 	"log"
@@ -59,8 +60,18 @@ func main() {
 	emailService := util.NewEmailService()
 	consumer := kafka.NewConsumer(universityService, emailService)
 
+	notificationService := notification.NotificationService{DB: db, Config: &cfg}
+	notification.RegisterRoutes(r, &notificationService)
+	notification_consumer := kafka.NewNotificationConsumer(universityService, &notificationService)
+
 	go func() {
 		if err := consumer.Start(ctx); err != nil {
+			log.Printf("Kafka consumer stopped: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := notification_consumer.Start(ctx); err != nil {
 			log.Printf("Kafka consumer stopped: %v", err)
 		}
 	}()

@@ -331,3 +331,13 @@ CREATE TABLE subscriptions (
     duration VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE notifications (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(256) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(10) DEFAULT 'new',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);

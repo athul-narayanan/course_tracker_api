@@ -40,11 +40,12 @@ func (s *EmailService) SendCourseNotification(to string, evt kafka.CourseEvent, 
 
 	subject := "New course matching your preferences"
 	body := fmt.Sprintf(
-		"Hi,\n\nA new course that matches your preferences has been added at %s:\n\nName: %s\nLevel: %s\nDuration: %s\n\nRegards,\nCourse Tracker\n",
+		"Hi,\n\nA new course that matches your preferences has been added at %s:\n\nName: %s\nLevel: %s\nDuration: %s\n\nRegards,\nCourse Tracker\n\nVisit the link to see details: %s",
 		uniName,
 		evt.Name,
 		level,
 		duration,
+		evt.CourseLink,
 	)
 
 	msg := "From: " + s.from + "\r\n" +

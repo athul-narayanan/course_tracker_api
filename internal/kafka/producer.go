@@ -19,6 +19,8 @@ type CourseEvent struct {
 	Level            *string `json:"level"`
 	Duration         *string `json:"duration"`
 	Source           string  `json:"source"`
+	CreatedAt        int64   `json:"createdAt"`
+	CourseLink       string  `json:"courseLink"`
 }
 
 type Producer struct {
